@@ -5,10 +5,12 @@ import { FormEvent, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { useAppContext } from "@/components/app-provider";
 import { Button, GlassCard, InputField, Toggle } from "@/components/ui";
+import { useAuth } from "@/components/auth-provider";
 
 export default function OnboardingPage() {
   const router = useRouter();
   const { completeOnboarding } = useAppContext();
+  const { user } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [lastStart, setLastStart] = useState("");
@@ -20,7 +22,7 @@ export default function OnboardingPage() {
     event.preventDefault();
     completeOnboarding({
       name,
-      email,
+      email: email || user?.email || "",
       lastKnownPeriodStart: lastStart || undefined,
       averageCycleLength: cycleLength ? Number(cycleLength) : undefined,
       remindersEnabled,
@@ -40,7 +42,7 @@ export default function OnboardingPage() {
           <p className="eyebrow">Private by default</p>
           <h2>Set up the minimum needed to make the app useful right away.</h2>
           <p className="muted-copy">
-            Everything here is optional except creating your local profile. You can export or delete all data any time.
+            Everything here is optional except creating your profile baseline.
           </p>
         </div>
       </GlassCard>

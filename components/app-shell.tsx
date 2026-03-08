@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ReactNode, useEffect } from "react";
 import { useAppContext } from "@/components/app-provider";
+import { useAuth } from "@/components/auth-provider";
 
 const navItems = [
   { href: "/", label: "Home", icon: "◐" },
@@ -25,10 +26,27 @@ export function AppShell({
   const pathname = usePathname();
   const router = useRouter();
   const { hydrated, state } = useAppContext();
+  const { ready: authReady, user } = useAuth();
   const onboardingRoute = pathname === "/onboarding";
+  const authRoute = pathname === "/auth";
+  const hideNavigation = onboardingRoute || authRoute;
 
   useEffect(() => {
     if (!hydrated) {
+      return;
+    }
+
+    if (!authReady) {
+      return;
+    }
+
+    if (!user && !authRoute) {
+      router.replace("/auth");
+      return;
+    }
+
+    if (user && authRoute) {
+      router.replace(state.onboardingComplete ? "/" : "/onboarding");
       return;
     }
 
@@ -40,9 +58,9 @@ export function AppShell({
     if (state.onboardingComplete && onboardingRoute) {
       router.replace("/");
     }
-  }, [hydrated, onboardingRoute, router, state.onboardingComplete]);
+  }, [authRoute, authReady, hydrated, router, state.onboardingComplete, user, onboardingRoute]);
 
-  if (!hydrated) {
+  if (!hydrated || !authReady) {
     return (
       <main className="app-shell">
         <section className="page loading-page">
@@ -65,7 +83,7 @@ export function AppShell({
         </header>
         {children}
       </section>
-      {onboardingRoute ? null : (
+      {hideNavigation ? null : (
         <nav className="bottom-nav" aria-label="Primary">
           {navItems.map((item) => (
             <Link

@@ -6,6 +6,7 @@ import {
   startTransition,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import {
@@ -26,10 +27,13 @@ import {
   createProfile,
   defaultState,
   readState,
+  clearState,
   saveImportSession,
   writeState,
 } from "@/lib/storage";
 import { today } from "@/lib/date";
+import { clearRemoteState, loadStateFromSupabase, saveStateToSupabase } from "@/lib/state-sync";
+import { useAuth } from "@/components/auth-provider";
 
 interface FinalizedImportCandidate {
   id: string;
@@ -115,21 +119,91 @@ function mergeLogs(logs: DailyLog[], draft: Omit<DailyLog, "id" | "createdAt" | 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>(defaultState);
   const [hydrated, setHydrated] = useState(false);
+  const { user, ready: authReady } = useAuth();
+  const syncTimer = useRef<number | null>(null);
 
   useEffect(() => {
-    startTransition(() => {
-      setState(readState());
-      setHydrated(true);
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!hydrated) {
+    if (!authReady) {
       return;
     }
 
-    writeState(state);
-  }, [hydrated, state]);
+    let mounted = true;
+
+    if (!user) {
+      startTransition(() => {
+        setState(defaultState);
+        setHydrated(true);
+      });
+      writeState(defaultState);
+      return () => {
+        mounted = false;
+      };
+    }
+
+    startTransition(() => {
+      setHydrated(false);
+    });
+
+    (async () => {
+      const localState = readState();
+      let nextState = localState;
+
+      try {
+        const remoteState = await loadStateFromSupabase();
+        if (remoteState) {
+          nextState = remoteState;
+        } else {
+          await saveStateToSupabase(localState);
+        }
+      } catch {
+        nextState = localState;
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      startTransition(() => {
+        setState(nextState);
+        setHydrated(true);
+      });
+    })().catch(() => {
+      if (!mounted) {
+        return;
+      }
+      startTransition(() => {
+        setState(readState());
+        setHydrated(true);
+      });
+    });
+
+    return () => {
+      mounted = false;
+    };
+  }, [authReady, user]);
+
+  useEffect(() => {
+    if (!hydrated || !authReady || !user) {
+      return;
+    }
+
+    if (syncTimer.current !== null) {
+      window.clearTimeout(syncTimer.current);
+    }
+
+    syncTimer.current = window.setTimeout(() => {
+      writeState(state);
+      saveStateToSupabase(state).catch(() => {
+        // Persist locally on remote errors.
+      });
+    }, 300);
+
+    return () => {
+      if (syncTimer.current !== null) {
+        window.clearTimeout(syncTimer.current);
+      }
+    };
+  }, [hydrated, state, authReady, user]);
 
   function completeOnboarding(input: OnboardingInput) {
     setState((current) => {
@@ -322,6 +396,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   function clearAllData() {
     setState(defaultState);
+    clearState();
+    clearRemoteState().catch(() => {
+      // Intentionally ignore remote cleanup errors when offline.
+    });
   }
 
   return (

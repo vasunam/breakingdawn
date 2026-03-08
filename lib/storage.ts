@@ -14,6 +14,14 @@ export const defaultState: AppState = {
   askMessages: [],
 };
 
+export function clearState() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.removeItem(STORAGE_KEY);
+}
+
 export function readState() {
   if (typeof window === "undefined") {
     return defaultState;

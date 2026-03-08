@@ -97,3 +97,35 @@ Users can:
 ## How to read this for execution
 
 Treat this README as the “product truth” for the prototype: the app should optimize onboarding speed, one-hand logging, and trust through transparency. Technical details and test scripts exist in the repo for implementation, but this document defines the expected user-facing behavior.
+
+## Running Locally
+
+1. Create `.env.local` with your Supabase credentials:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
+```
+
+2. Install dependencies:
+
+```bash
+npm install
+```
+
+3. Start dev server:
+
+```bash
+npm run dev
+```
+
+4. Open `http://localhost:3000` and create an account at `/auth`.
+
+## Supabase Bootstrap (Production)
+
+1. Create a Supabase project and enable email + password auth.
+2. Run the SQL from `supabase/schema.sql` in the SQL Editor.
+3. Add environment variables in Vercel for production:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+4. Deploy on Vercel from this repo.
