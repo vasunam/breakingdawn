@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
 import type { AuthError, Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 
@@ -18,25 +18,35 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [ready, setReady] = useState(false);
+  const bootstrapped = useRef(false);
 
   useEffect(() => {
     let active = true;
 
-    supabase.auth.getSession().then(({ data }) => {
+    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       if (!active) {
         return;
       }
-      setSession(data.session ?? null);
+
+      bootstrapped.current = true;
+      setSession(nextSession ?? null);
       setReady(true);
-    }).catch(() => {
-      if (active) {
-        setSession(null);
-        setReady(true);
-      }
     });
 
-    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      setSession(nextSession ?? null);
+    supabase.auth.getSession().then(({ data: sessionData }) => {
+      if (!active || bootstrapped.current) {
+        return;
+      }
+
+      setSession(sessionData.session ?? null);
+      setReady(true);
+    }).catch(() => {
+      if (!active || bootstrapped.current) {
+        return;
+      }
+
+      setSession(null);
+      setReady(true);
     });
 
     return () => {

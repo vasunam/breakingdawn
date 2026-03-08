@@ -32,16 +32,14 @@ export function AppShell({
   const hideNavigation = onboardingRoute || authRoute;
 
   useEffect(() => {
-    if (!hydrated) {
+    if (!hydrated || !authReady) {
       return;
     }
 
-    if (!authReady) {
-      return;
-    }
-
-    if (!user && !authRoute) {
-      router.replace("/auth");
+    if (!user) {
+      if (!authRoute) {
+        router.replace("/auth");
+      }
       return;
     }
 

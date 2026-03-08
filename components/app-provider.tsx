@@ -134,7 +134,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setState(defaultState);
         setHydrated(true);
       });
-      writeState(defaultState);
       return () => {
         mounted = false;
       };
