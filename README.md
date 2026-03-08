@@ -124,8 +124,14 @@ npm run dev
 ## Supabase Bootstrap (Production)
 
 1. Create a Supabase project and enable email + password auth.
-2. Run the SQL from `supabase/schema.sql` in the SQL Editor.
+2. Apply the migration in `supabase/migrations/20260308190823_create_app_states.sql`:
+   - Either run `supabase migration list --password "<your-db-password>"` and `supabase db push --password "<your-db-password>"`, or
+   - Run the SQL directly in the Supabase SQL Editor.
 3. Add environment variables in Vercel for production:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-4. Deploy on Vercel from this repo.
+4. In Supabase Auth settings:
+   - Confirm `SITE_URL`/`Redirect URLs` include your Vercel domain (for example `https://<your-app>.vercel.app/auth/callback` when using any OAuth flow; email/password can use project defaults).
+   - Keep `Enable email signup` and `Enable email confirmations` enabled if you want confirmation-required sign-in.
+5. Deploy on Vercel from this repo.
+6. Set Vercel build command to `npm run build` and Node version to 20+.
